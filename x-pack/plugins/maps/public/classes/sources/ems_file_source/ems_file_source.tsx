@@ -16,9 +16,9 @@ import {
   SOURCE_TYPES,
   FIELD_ORIGIN,
   VECTOR_SHAPE_TYPE,
-  FORMAT_TYPE,
+  EMPTY_FEATURE_COLLECTION,
 } from '../../../../common/constants';
-import { fetchGeoJson, getEmsFileLayers } from '../../../util';
+import { getEmsFileLayers } from '../../../util';
 import { getDataSourceLabel } from '../../../../common/i18n_getters';
 import { UpdateSourceEditor } from './update_source_editor';
 import { EMSFileField } from '../../fields/ems_file_field';
@@ -123,23 +123,27 @@ export class EMSFileSource extends AbstractVectorSource implements IEmsFileSourc
 
   async getGeoJsonWithMeta(): Promise<GeoJsonWithMeta> {
     const emsFileLayer = await this.getEMSFileLayer();
-    const featureCollection = await fetchGeoJson(
-      emsFileLayer.getDefaultFormatUrl(),
-      emsFileLayer.getDefaultFormatType() as FORMAT_TYPE,
-      'data'
-    );
 
+    const featureCollection = await emsFileLayer.getGeoJson();
     const emsIdField = emsFileLayer.getFields().find((field) => {
       return field.type === 'id';
     });
-    featureCollection.features.forEach((feature: Feature, index: number) => {
-      feature.id = emsIdField ? feature!.properties![emsIdField.id] : index;
-    });
 
-    return {
-      data: featureCollection,
-      meta: {},
-    };
+    if (featureCollection) {
+      featureCollection.features.forEach((feature: Feature, index: number) => {
+        feature.id = emsIdField ? feature!.properties![emsIdField.id] : index;
+      });
+
+      return {
+        data: featureCollection,
+        meta: {},
+      };
+    } else {
+      return {
+        data: EMPTY_FEATURE_COLLECTION,
+        meta: {},
+      };
+    }
   }
 
   async getImmutableProperties(): Promise<ImmutableSourceProperty[]> {
