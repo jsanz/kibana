@@ -11,7 +11,7 @@ import coerce from 'semver/functions/coerce';
 import { BuildFlavor } from '@kbn/config/src/types';
 import { i18n } from '@kbn/i18n';
 import { EMSClient } from '@elastic/ems-client';
-import { EMS_APP_NAME, EMSSettings } from '../../common';
+import { EMS_APP_NAME, EMSSettings, DEFAULT_EMS_REST_VERSION } from '../../common';
 
 export function createEMSClient(
   emsSettings: EMSSettings,
@@ -21,13 +21,17 @@ export function createEMSClient(
   let landingPageUrl = emsSettings!.getEMSLandingPageUrl();
   const kbnSemVer = coerce(kbnVersion);
 
-  if (buildFlavor === 'traditional' && kbnSemVer) {
+  const isServerless = buildFlavor === 'serverless';
+
+  if (!isServerless && kbnSemVer) {
     landingPageUrl = `${landingPageUrl}/v${kbnSemVer.major}.${kbnSemVer.minor}`;
   }
 
+
   return new EMSClient({
     language: i18n.getLocale(),
-    appVersion: kbnVersion,
+    appVersion: isServerless ? DEFAULT_EMS_REST_VERSION : kbnVersion,
+    emsVersion: isServerless ? DEFAULT_EMS_REST_VERSION : kbnVersion,
     appName: EMS_APP_NAME,
     tileApiUrl: emsSettings!.getEMSTileApiUrl(),
     fileApiUrl: emsSettings!.getEMSFileApiUrl(),
@@ -36,6 +40,5 @@ export function createEMSClient(
       return fetch(url);
     },
     proxyPath: '',
-    emsVersion: kbnVersion,
   });
 }
