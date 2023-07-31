@@ -8,6 +8,7 @@
 
 import coerce from 'semver/functions/coerce';
 
+import { ELASTIC_HTTP_VERSION_HEADER } from '@kbn/core-http-common';
 import { BuildFlavor } from '@kbn/config/src/types';
 import { i18n } from '@kbn/i18n';
 import { EMSClient } from '@elastic/ems-client';
@@ -20,13 +21,14 @@ export function createEMSClient(
 ): EMSClient {
   let landingPageUrl = emsSettings!.getEMSLandingPageUrl();
   const kbnSemVer = coerce(kbnVersion);
-
   const isServerless = buildFlavor === 'serverless';
+  const headers = new Headers();
 
   if (!isServerless && kbnSemVer) {
     landingPageUrl = `${landingPageUrl}/v${kbnSemVer.major}.${kbnSemVer.minor}`;
+  } else {
+    headers.append(ELASTIC_HTTP_VERSION_HEADER, DEFAULT_EMS_REST_VERSION);
   }
-
 
   return new EMSClient({
     language: i18n.getLocale(),
@@ -37,7 +39,7 @@ export function createEMSClient(
     fileApiUrl: emsSettings!.getEMSFileApiUrl(),
     landingPageUrl,
     fetchFunction(url: string) {
-      return fetch(url);
+      return fetch(url, { headers });
     },
     proxyPath: '',
   });
