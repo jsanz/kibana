@@ -413,9 +413,21 @@ export class EmsVectorTileLayer extends AbstractLayer {
   _setOpacityForType(mbMap: MbMap, mbLayer: LayerSpecification, mbLayerId: string) {
     this._getOpacityProps(mbLayer.type).forEach((opacityProp) => {
       const mbPaint = mbLayer.paint as { [key: string]: unknown } | undefined;
+      // Default case, the opacity is already a number
       if (mbPaint && typeof mbPaint[opacityProp] === 'number') {
         const newOpacity = (mbPaint[opacityProp] as number) * this.getAlpha();
         mbMap.setPaintProperty(mbLayerId, opacityProp, newOpacity);
+        // If the opacity is a maplibre object definition, take the base value
+      } else if (
+        mbPaint &&
+        opacityProp in mbPaint &&
+        typeof mbPaint[opacityProp] === 'object' &&
+        'base' in (mbPaint[opacityProp] as { base: number })
+      ) {
+        const mbPaintOpacityOp = mbPaint[opacityProp] as { base: number };
+        const newOpacity = mbPaintOpacityOp.base * this.getAlpha();
+        mbMap.setPaintProperty(mbLayerId, opacityProp, newOpacity);
+        // For other cases overwrite the opacity with current alpha
       } else {
         mbMap.setPaintProperty(mbLayerId, opacityProp, this.getAlpha());
       }
